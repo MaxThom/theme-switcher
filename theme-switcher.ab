@@ -1,0 +1,238 @@
+//
+// Theme-Switcher is a utlity to easily switch between light and dark themes
+//
+// Author: github.com/maxthom
+// Date: June 2024
+// Reasons:
+//      - Needed a way to easily switch between light and dark themes
+//      - To try AmberLang
+//
+
+// TODO switch contains light or dark
+
+// ISSUE ~ not working
+// ISSUE else on failed condition
+// ISSUE #!/bin/bash not set
+
+let light_theme = "org.manjaro.breath-light.desktop"
+let dark_theme = "org.manjaro.breath-dark.desktop"
+let current_theme = ""
+
+let folderpath = "" 
+let config_filepath = ""
+
+fun key_exist(t: Text): Bool {
+    $grep -q "^{t}=" {config_filepath}$ failed {
+       return false
+    } 
+    return true
+}
+
+fun find_config_location() {
+    let xdg_cfg = $echo \$XDG_CONFIG_HOME$ failed {
+        echo "error retrieving $XDG_CONFIG_HOME"
+    }
+    if xdg_cfg == "" {
+        let home = $echo \$HOME$ failed {
+            echo "error retrieving $HOME$" 
+            fail 1
+         }
+        folderpath = home + "/.config"
+        config_filepath = folderpath + "/theme-switcher.conf"
+    } else {
+        folderpath = xdg_cfg  
+        config_filepath = folderpath + "/theme-switcher.conf"
+    }
+}
+
+// Validate the existance of the config file
+// Validate the required keys are present
+fun reconcile_config() {
+    // Make sure config exist
+    $[ -f "{config_filepath}" ]$ failed {
+        echo "creating config file {config_filepath}"
+        $mkdir -p "{folderpath}"$ failed {
+            echo "error creating folder {folderpath}"
+        }
+        $touch "{config_filepath}"$ failed {
+            echo "error creating {config_filepath}"
+        }
+        $echo "light-theme=" > "{config_filepath}"$ failed {
+            echo "error putting content in config file"
+        }
+        $echo "dark-theme=" >> "{config_filepath}"$ failed {
+            echo "error putting content in config file"
+        }
+    }
+    
+    // Make sure keys exist
+    if key_exist("light-theme") {
+        // FIX empty statement cause I cant negate the condition cause of language bugs 
+        // Its in alpha
+    } else {
+        $echo "light-theme=" >> "{config_filepath}"$ failed {
+            echo "error putting content in config file"
+        }
+    }
+    if key_exist("dark-theme") {
+        // FIX empty statement cause I cant negate the condition cause of language bugs 
+        // Its in alpha
+    } else {
+        $echo "dark-theme=" >> "{config_filepath}"$ failed {
+            echo "error putting content in config file"
+        }
+    }
+}
+
+fun retrieve_themes() {
+     // Retrieve config themes and current theme
+    light_theme = $sed -n 's/^light-theme=//p' {config_filepath}$ failed {
+        echo "Failed to get light theme"
+    }
+    dark_theme = $sed -n 's/^dark-theme=//p' {config_filepath}$ failed {
+        echo "Failed to get dark theme"
+    }
+    current_theme = $sed -n 's/^LookAndFeelPackage=//p' ~/.config/kdeglobals$ failed {
+        echo "Failed to get current theme"
+    }
+}
+
+fun print_help() {
+    echo "Theme-Switcher is a utlity to easily switch between light and dark themes"
+    echo ""
+    echo "Usage: theme-switcher [COMMAND]"
+    echo ""
+    echo "Commands:"
+    echo "  list - List available themes"
+    echo "  current - Get current theme"
+    echo "  set-light [current|<theme>] - Set light theme. Current use the current theme"
+    echo "  set-dark [current|<theme>] - Set dark theme. Current use the current theme"
+    echo "  light - Switch to light theme"
+    echo "  dark - Switch to dark theme"
+    echo "  switch - Switch between light and dark theme"
+    echo "  help - Print this help"
+    echo ""
+    echo "Configuration:"
+    echo "  Configuration file is located at XDG_CONFIG_HOME/theme-switcher.conf"
+    echo "  If XDG_CONFIG_HOME is not set, the configuration file is located at HOME/.config/theme-switcher.conf"
+    echo ""
+    echo "Author: github.com/maxthom"
+    echo "Au revoir !"
+
+}
+
+main (fn, arg) {
+    find_config_location() failed {
+        echo "error finding config file location. set location with $XDG_CONFIG_HOME or $HOME"
+    }
+    reconcile_config()
+    retrieve_themes()   
+   
+    // Act on user inputs
+    if {
+        fn == "light" {
+            if light_theme == "" {
+                echo "light theme is not set"
+                fail 1
+            }
+            $lookandfeeltool -a {light_theme}$ failed {
+                echo "Failed to set light theme"
+            }
+            echo "{light_theme}"
+        }
+        fn == "dark" {
+            if dark_theme == "" {
+                echo "dark theme is not set"
+                fail 1
+            }
+            $lookandfeeltool -a {dark_theme}$ failed {
+                echo "Failed to set light theme"
+            }
+            echo "{dark_theme}"
+        }
+        fn == "set-light" {
+            if arg == "current" {
+                $sed -i.bak -E "s/^(light-theme=).*/\1{current_theme}/" {config_filepath}$ failed {
+                    echo "error setting light theme"
+                }
+                echo current_theme 
+            } else {
+                $sed -i.bak -E "s/^(light-theme=).*/\1{arg}/" {config_filepath}$ failed {
+                    echo "error setting light theme"
+                }
+                echo arg
+            }
+        }
+        fn == "set-dark" {
+            if arg == "current" {
+                $sed -i.bak -E "s/^(dark-theme=).*/\1{current_theme}/" {config_filepath}$ failed {
+                    echo "error setting dark theme"
+                }
+                echo current_theme
+            } else {
+                $sed -i.bak -E "s/^(dark-theme=).*/\1{arg}/" {config_filepath}$ failed {
+                    echo "error setting dark theme"
+                }
+                echo arg
+            }
+        }
+        fn == "switch" {
+            if {
+                light_theme == "" {
+                    echo "light theme is not set"
+                    fail 1
+                }
+                dark_theme == "" {
+                    echo "dark theme is not set"
+                    fail 1
+                }
+                current_theme == light_theme {
+                    $lookandfeeltool -a {dark_theme}$ failed {
+                        echo "failed to set dark theme"
+                    }
+                    echo dark_theme
+                }
+                current_theme == dark_theme {
+                    $lookandfeeltool -a {light_theme}$ failed {
+                        echo "failed to set light theme"
+                    }
+                    echo light_theme
+                } 
+                else {
+                    // TODO contains light or dark
+                    // If current theme name contains light, set dark and vice versa
+                    // else just set light
+                    $lookandfeeltool -a {light_theme}$ failed {
+                        echo "failed to set light theme"
+                    }
+                    echo light_theme
+                }
+            }
+        }
+        fn == "list" {
+            $lookandfeeltool --list$ failed {
+                echo "Failed to list themes"
+            }
+        }
+        fn == "current" {
+            echo current_theme
+        }
+        fn == "help" {
+            print_help()
+        }
+        fn == "--help" {
+            print_help()
+        }
+        fn == "-help" {
+            print_help()
+        }
+        fn == "-h" {
+            print_help()
+        } 
+        else {
+            print_help()
+        }
+    }
+}
+
+
