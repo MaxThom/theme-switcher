@@ -9,11 +9,16 @@ The two main goals are
 1. To try out the new [AmberLang](https://github.com/Ph0enixKM/Amber)
 2. Creating this little utility for my personnal used
 
-
 ## Installation
 
 ```sh
 # Move theme=switcher.sh to /usr/local/bin/tsw
+sudo cp theme-switcher.sh /usr/local/bin/tsw
+# You can easily create a kde desktop icon to launch the script with switch arg
+Right click on 
+  > application launcher icon on taskbar 
+  > Edit application
+  > Save a new entry with path the the script and switch as arg
 # Use !
 ```
 
